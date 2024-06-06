@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
 from scipy.stats import zscore
 import torch
 import torch.nn as nn
@@ -31,6 +32,8 @@ model.eval()
 
 X = pd.read_csv('testdata.txt', header=None)
 X_test = X.values
+pca = PCA(n_components=100)
+X_test = pca.fit_transform(X_test)
 
 scaler = StandardScaler()
 X_test = scaler.fit_transform(X_test)
@@ -42,4 +45,4 @@ with open('testlabels.txt', 'a') as f:
         pred = torch.argmax(pred).item()
         f.write(f'{pred}\n')
 
- 
+
