@@ -35,6 +35,9 @@ X_test = X.values
 pca = PCA(n_components=100)
 X_test = pca.fit_transform(X_test)
 
+X_test = X_test + np.random.normal(0, 0.1, size=X_test.shape)
+StandardScaler().fit_transform(X_test)
+
 scaler = StandardScaler()
 X_test = scaler.fit_transform(X_test)
 
