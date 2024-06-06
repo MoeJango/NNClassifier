@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from sklearn.impute import KNNImputer
 from scipy.stats import zscore
 import torch
 import torch.nn as nn
@@ -10,19 +11,15 @@ import torch.nn.functional as F
 
 
 class Model(nn.Module):
-    def __init__(self, in_features=1041, h1=200, h2=200, h3=200, h4=200, out_features=21):
+    def __init__(self, in_features=1041, h1=360, h2=360, out_features=21):
         super(Model, self).__init__()
         self.fc1 = nn.Linear(in_features, h1)
         self.fc2 = nn.Linear(h1, h2)
-        self.fc3 = nn.Linear(h2, h3)
-        self.fc4 = nn.Linear(h3, h4)
         self.out = nn.Linear(h2, out_features)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
         x = self.out(x)
 
         return x
@@ -35,13 +32,7 @@ Y = pd.read_csv('trainlabels.txt', header=None)
 
 X_train, X_test, Y_train, Y_test = train_test_split(X.values, Y.values, test_size=0.2, random_state=42)
 
-z = np.abs(zscore(X_train))
-threshold = 7
-mask = (z < threshold).all(axis=1)
-X_train = X_train[mask]
-Y_train = Y_train[mask]
-
-scaler = MinMaxScaler()
+scaler = StandardScaler()
 
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
@@ -56,7 +47,7 @@ criterion = nn.CrossEntropyLoss()
 learning_rate = 0.01
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-epochs = 1000
+epochs = 100
 errors = []
 
 for i in range(epochs):
@@ -81,3 +72,5 @@ with torch.no_grad():
         else:
             wrong += 1
 print(f'Correct: {correct}, Wrong: {wrong}')
+
+torch.save(model.state_dict(), 'model.pth')
