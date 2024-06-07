@@ -84,7 +84,7 @@ X_test = shape_data(X_test, orientations)
 scaler = StandardScaler()
 X_test = scaler.fit_transform(X_test)
 
-with open('testlabels.txt', 'a') as f:
+with open('predlabels.txt', 'a') as f:
     for point in X_test:
         point = torch.FloatTensor(point)
         pred = model.forward(point)
