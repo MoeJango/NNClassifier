@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 
 class Model(nn.Module):
-    def __init__(self, in_features=100, h1=300, h2=300, out_features=21):
+    def __init__(self, in_features=1040, h1=300, h2=300, out_features=21):
         super(Model, self).__init__()
         self.fc1 = nn.Linear(in_features, h1)
         self.fc2 = nn.Linear(h1, h2)
@@ -33,42 +33,62 @@ Y = pd.read_csv('trainlabels.txt', header=None)
 
 X_train, X_test, Y_train, Y_test = train_test_split(X.values, Y.values, test_size=0.2, random_state=42)
 
-pca = PCA(n_components=100)
-X_train = pca.fit_transform(X_train)
-X_test = pca.transform(X_test)
+def normalize_pixel_values(data, max_value, min_value):
+    """
+    Normalize pixel values to be between 0 and 255.
+    """
+    # Shift data so minimum value is 0
+    data = data - min_value
+    # Scale data to the range 0-255
+    data = (data / max_value) * 255
+    return data
 
-augmented_X_train = []
-augmented_y_train = []
-
-for i in range(len(X_train)):
-    original_data = X_train[i]
-    augmented_X_train.append(original_data)
-    augmented_y_train.append(Y_train[i])
-
-    # Apply random perturbations
-    perturbed_data = original_data + np.random.normal(0, 0.1, size=original_data.shape)
-    augmented_X_train.append(perturbed_data)
-    augmented_y_train.append(Y_train[i])
-
-# Convert augmented data to numpy arrays
-augmented_X_train = np.array(augmented_X_train)
-augmented_y_train = np.array(augmented_y_train)
+def rotate_image(image, orientation):
+    """
+    Rotate image to the normal orientation.
+    """
+    if orientation == 1:  # 90 degrees
+        return np.rot90(image, 3)
+    elif orientation == 2:  # 180 degrees
+        return np.rot90(image, 2)
+    elif orientation == 3:  # 270 degrees
+        return np.rot90(image, 1)
+    else:
+        return image
 
 
 
-# Concatenate augmented data with original data
-X_train = np.concatenate([X_train, augmented_X_train], axis=0)
-Y_train = np.concatenate([Y_train, augmented_y_train], axis=0)
+def shape_data(data, orientations):
+    shaped_data = []
+    for d, o in zip(data, orientations):
+        if o == 1 or o == 3:
+            d = d.reshape(26, 40)
+        else:
+            d = d.reshape(40, 26)
+        shaped_data.append(d)
+    shaped_data_rotated = []
+    for img, ori in zip(shaped_data, orientations):
+        img = rotate_image(img, ori)
+        shaped_data_rotated.append(img.flatten())
+    return np.array(shaped_data_rotated)
 
-X_train, Y_train = shuffle(X_train, Y_train, random_state=42)
+# Remove the last column (orientation)
+orientations_train = X_train[:, -1]
+X_train = X_train[:, :-1]
+orientations_test = X_test[:, -1]
+X_test = X_test[:, :-1]
 
-X_train = X_train + np.random.normal(0, 0.1, X_train.shape)
-X_test = X_test + np.random.normal(0, 0.1, X_test.shape)
+max_value = np.max(X.values)
+min_value = np.min(X.values)
+# Normalize the data
+X_train = normalize_pixel_values(X_train, max_value, min_value)
+X_test = normalize_pixel_values(X_test, max_value, min_value)
 
-scaler = StandardScaler()
+X_train = shape_data(X_train, orientations_train)
+X_test = shape_data(X_test, orientations_test)
 
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+X_train = StandardScaler().fit_transform(X_train)
+X_test = StandardScaler().fit_transform(X_test)
 
 X_train = torch.FloatTensor(X_train)
 X_test = torch.FloatTensor(X_test)
@@ -80,7 +100,7 @@ criterion = nn.CrossEntropyLoss()
 learning_rate = 0.01
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-epochs = 100
+epochs = 150
 errors = []
 
 for i in range(epochs):
