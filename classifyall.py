@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 
 class Model(nn.Module):
-    def __init__(self, in_features=1040, h1=360, h2=360, out_features=21):
+    def __init__(self, in_features=1040, h1=300, h2=300, out_features=21):
         super(Model, self).__init__()
         self.fc1 = nn.Linear(in_features, h1)
         self.fc2 = nn.Linear(h1, h2)
