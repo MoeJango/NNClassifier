@@ -80,7 +80,6 @@ max_value = np.max(X_test)
 
 X_test = normalize_pixel_values(X_test, max_value, min_value)
 X_test = shape_data(X_test, orientations)
-StandardScaler().fit_transform(X_test)
 
 scaler = StandardScaler()
 X_test = scaler.fit_transform(X_test)
